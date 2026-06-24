@@ -1,3 +1,5 @@
-# Web Archive Changelog
+# Internet Archive Changelog
 
-## [Initial Version] - {PR_MERGE_DATE}
+## v1.0.0 - {PR_MERGE_DATE}
+
+- Initial release

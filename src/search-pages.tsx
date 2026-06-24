@@ -54,8 +54,8 @@ export default function SearchWebArchive() {
     async function run() {
       setIsLoading(true);
       try {
-        const result = await fetchSnapshots(searchText);
-        console.log("[search-web-archive] setSnapshots result length:", result.length);
+        const result = await fetchPages(searchText);
+        console.log("[search-pages] setSnapshots result length:", result.length);
         if (!cancelled) {
           const initialSnapshots = result.slice(0, PAGE_SIZE);
           allSnapshotsRef.current = result;
@@ -89,7 +89,7 @@ export default function SearchWebArchive() {
     <List
       isLoading={isLoading}
       pagination={{ hasMore, onLoadMore: loadNextPage, pageSize: PAGE_SIZE }}
-      searchBarPlaceholder="e.g. https://www.gzevergrandefc.com/photos.aspx"
+      searchBarPlaceholder="Enter a URL "
       searchText={searchText}
       onSearchTextChange={setSearchText}
       throttle
@@ -116,6 +116,7 @@ export default function SearchWebArchive() {
           <List.Item
             key={`${snapshot.original}-${snapshot.timestamp}`}
             icon={Icon.Globe}
+            id={snapshot.original}
             title={{ value: snapshot.original, tooltip: "Original URL" }}
             accessories={accessories}
             actions={
@@ -158,8 +159,8 @@ function formatTimestamp(timestamp: string) {
 }
 
 function buildSnapshotUrls(snapshot: Snapshot) {
-  // snapshotUrl: the concrete archived snapshot
-  // calendarUrl: the calendar view for grouped captures
+  // snapshotUrl points to a specific archived capture.
+  // calendarUrl opens the Wayback calendar view for pages with multiple captures.
   return {
     snapshotUrl: `https://web.archive.org/web/${snapshot.endtimestamp}/${snapshot.original}`,
     calendarUrl: `https://web.archive.org/web/${snapshot.endtimestamp}*/${snapshot.original}`,
@@ -181,49 +182,49 @@ function buildTimemapUrl(rawUrl: string) {
   return `https://web.archive.org/web/timemap/json?${params.toString()}`;
 }
 
-async function fetchSnapshots(targetUrl: string): Promise<Snapshot[]> {
+async function fetchPages(targetUrl: string): Promise<Snapshot[]> {
   const timemapUrl = buildTimemapUrl(targetUrl);
-  console.log("[search-web-archive] request url:", targetUrl);
-  console.log("[search-web-archive] timemap url:", timemapUrl);
+  console.log("[search-pages] request url:", targetUrl);
+  console.log("[search-pages] timemap url:", timemapUrl);
 
   let response: Response;
   try {
     response = await fetch(timemapUrl);
   } catch (error) {
-    console.log("[search-web-archive] fetch error:", error);
+    console.log("[search-pages] fetch error:", error);
     throw new Error(`Network error when requesting timemap: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  console.log("[search-web-archive] response status:", response.status, response.statusText);
+  console.log("[search-pages] response status:", response.status, response.statusText);
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status} ${response.statusText}`);
   }
 
   const data = (await response.json()) as unknown;
-  console.log("[search-web-archive] raw json data:", data);
+  console.log("[search-pages] raw json data:", data);
 
   if (!Array.isArray(data) || data.length < 2) {
-    console.log("[search-web-archive] invalid data format or empty data");
+    console.log("[search-pages] invalid data format or empty data");
     return [];
   }
 
   const rows = data.slice(1) as unknown[];
-  console.log("[search-web-archive] rows length:", rows.length);
+  console.log("[search-pages] rows length:", rows.length);
 
   const snapshots = rows
     .map((row) => {
       if (!Array.isArray(row) || row.length < 6) {
-        console.log("[search-web-archive] skip invalid row:", row);
+        console.log("[search-pages] skip invalid row:", row);
         return null;
       }
       const [original, mimetype, timestamp, endtimestamp, groupcount, uniqcount] = row as string[];
       return { original, mimetype, timestamp, endtimestamp, groupcount, uniqcount };
     })
-    .filter((item): item is Snapshot => Boolean(item))
-    .sort((a, b) => b.endtimestamp.localeCompare(a.endtimestamp));
+    .filter((item): item is Snapshot => Boolean(item));
+  // .sort((a, b) => b.endtimestamp.localeCompare(a.endtimestamp));
 
-  console.log("[search-web-archive] parsed snapshots:", snapshots);
+  console.log("[search-pages] parsed snapshots:", snapshots);
 
   return snapshots;
 }
