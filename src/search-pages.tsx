@@ -1,10 +1,6 @@
-import { Action, ActionPanel, Icon, List, Toast, getPreferenceValues, showToast } from "@raycast/api";
+import { Action, ActionPanel, Icon, List, Toast, showToast } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-type Preferences = {
-  defaultUrl?: string;
-};
 
 type Snapshot = {
   original: string;
@@ -17,9 +13,8 @@ type Snapshot = {
 
 const PAGE_SIZE = 20;
 
-export default function SearchWebArchive() {
-  const { defaultUrl } = getPreferenceValues<Preferences>();
-  const [searchText, setSearchText] = useState(defaultUrl ?? "");
+export default function SearchPages() {
+  const [searchText, setSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [hasMore, setHasMore] = useState(false);
